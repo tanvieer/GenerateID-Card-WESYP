@@ -40,61 +40,43 @@ def generate_qr(data, qr_path):
 
     img.save(qr_path, "PNG")
 
-def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name):
+def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
 
-    # ----------- Overlay for first page (name) -----------
-    first_page = reader.pages[0]
-    page_width = float(first_page.mediabox.width)
-    page_height = float(first_page.mediabox.height)
+    # Get size of second page
+    page = reader.pages[1]
+    page_width = float(page.mediabox.width)
+    page_height = float(page.mediabox.height)
 
-    overlay_path_page1 = "overlay_page1.pdf"
-    c1 = canvas.Canvas(overlay_path_page1, pagesize=(page_width, page_height))
+    # Create overlay with same size as the page
+    overlay_path = "overlay.pdf"
+    c = canvas.Canvas(overlay_path, pagesize=(page_width, page_height))
 
-    # Set font and size
-    c1.setFont("Helvetica-Bold", 16)
-    x_name = 35  # 30 pts from left
-    y_name = 90  # 30 pts from bottom
-    c1.drawString(x_name, y_name, name)
-    c1.save()
+    # Load QR code
+    qr_img = ImageReader(qr_path)
+    qr_size = 120  # try smaller size to fit inside the box
 
-    overlay_reader1 = PdfReader(overlay_path_page1)
-    first_page.merge_page(overlay_reader1.pages[0])
-    writer.add_page(first_page)
+    # Calculate centered X
+    x = (page_width - qr_size) / 2
 
-    # ----------- Overlay for second page (QR) -----------
-    if len(reader.pages) > 1:
-        page2 = reader.pages[1]
-        page_width = float(page2.mediabox.width)
-        page_height = float(page2.mediabox.height)
+    # Adjust Y position manually (box is lower, not center)
+    # Example: place it ~150 pts from the bottom
+    y = 120
 
-        overlay_path_page2 = "overlay_page2.pdf"
-        c2 = canvas.Canvas(overlay_path_page2, pagesize=(page_width, page_height))
+    # Draw QR code
+    c.drawImage(qr_img, x, y, qr_size, qr_size, mask="auto")
+    c.save()
 
-        qr_img = ImageReader(qr_path)
-        qr_size = 120
-        x_qr = (page_width - qr_size) / 2
-        y_qr = 120  # distance from bottom
-
-        c2.drawImage(qr_img, x_qr, y_qr, qr_size, qr_size, mask="auto")
-        c2.save()
-
-        overlay_reader2 = PdfReader(overlay_path_page2)
-        page2.merge_page(overlay_reader2.pages[0])
-        writer.add_page(page2)
-
-    # ----------- Add remaining pages if any -----------
-    for i in range(2, len(reader.pages)):
-        writer.add_page(reader.pages[i])
+    # Merge overlay onto page 2
+    overlay_reader = PdfReader(overlay_path)
+    for i, p in enumerate(reader.pages):
+        if i == 1:  # second page
+            p.merge_page(overlay_reader.pages[0])
+        writer.add_page(p)
 
     with open(output_pdf, "wb") as f:
         writer.write(f)
-
-    # Cleanup temporary overlays
-    os.remove("overlay_page1.pdf")
-    if os.path.exists("overlay_page2.pdf"):
-        os.remove("overlay_page2.pdf")
 
 
 def find_pdf_for_name(name, folder):
@@ -135,7 +117,7 @@ def main():
             generate_qr(json_data, qr_path)
 
             # Attach QR to PDF
-            overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name)
+            overlay_qr_on_pdf(input_pdf, qr_path, output_pdf)
             print(f"✅ Generated ID card: {output_pdf}")
 
             # Clean up QR file
