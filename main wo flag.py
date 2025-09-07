@@ -13,8 +13,6 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 TEMPLATE_PDF = "id_cards/idcard_template.pdf"
 OUTPUT_FOLDER = "output"
 CSV_FILE = "participants.csv"
-# CSV_FILE = "speaker.csv"
-# CSV_FILE = "volunteers.csv"
 
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
@@ -41,24 +39,23 @@ def generate_qr(data, qr_path):
 
     img.save(qr_path, "PNG")
 
-def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
+def overlay_qr_and_name(input_pdf, qr_path, output_pdf, name):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
 
     page_width = float(reader.pages[0].mediabox.width)
     page_height = float(reader.pages[0].mediabox.height)
 
-    # --- Overlay first page: name + flag ---
-    overlay_path1 = "overlay_page1.pdf"
-    c1 = canvas.Canvas(overlay_path1, pagesize=(page_width, page_height))
-
-    # Draw name (same as before)
+    # ----------- Overlay first page with name -----------
+    overlay_path_name = "overlay_name.pdf"
+    c1 = canvas.Canvas(overlay_path_name, pagesize=(page_width, page_height))
     font_name = "Helvetica-Bold"
-    font_size = 17
+    font_size = 18
     c1.setFont(font_name, font_size)
     x_name = 36
-    y_name = 85
+    y_name = 80
     max_width = page_width * 0.5
+
     words = name.split()
     line = ""
     lines = []
@@ -70,32 +67,21 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
             lines.append(line)
             line = word
     lines.append(line)
+
     for i, ln in enumerate(lines):
         c1.drawString(x_name, y_name - i * (font_size + 2), ln)
-
-    # Draw flag
-    flag_path = f"flags/{country}.png"
-    if os.path.exists(flag_path):
-        flag_img = ImageReader(flag_path)
-        flag_width = 50
-        flag_height = 30
-        x_flag = page_width - flag_width - 20
-        y_flag = page_height - flag_height - 20
-        c1.drawImage(flag_img, x_flag, y_flag, flag_width, flag_height, mask="auto")
-    else:
-        print(f"⚠️ Flag not found for {country}: {flag_path}")
-
     c1.save()
-    overlay_reader1 = PdfReader(overlay_path1)
-    first_page = reader.pages[0]
-    first_page.merge_page(overlay_reader1.pages[0])
-    writer.add_page(first_page)
-    os.remove(overlay_path1)
 
-    # --- Overlay second page: QR code ---
+    overlay_reader_name = PdfReader(overlay_path_name)
+    first_page = reader.pages[0]
+    first_page.merge_page(overlay_reader_name.pages[0])
+    writer.add_page(first_page)
+    os.remove(overlay_path_name)
+
+    # ----------- Overlay second page with QR code -----------
     if len(reader.pages) > 1:
-        overlay_path2 = "overlay_page2.pdf"
-        c2 = canvas.Canvas(overlay_path2, pagesize=(page_width, page_height))
+        overlay_path_qr = "overlay_qr.pdf"
+        c2 = canvas.Canvas(overlay_path_qr, pagesize=(page_width, page_height))
         qr_img = ImageReader(qr_path)
         qr_size = 120
         x_qr = (page_width - qr_size) / 2
@@ -103,13 +89,13 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
         c2.drawImage(qr_img, x_qr, y_qr, qr_size, qr_size, mask="auto")
         c2.save()
 
-        overlay_reader2 = PdfReader(overlay_path2)
+        overlay_reader_qr = PdfReader(overlay_path_qr)
         page2 = reader.pages[1]
-        page2.merge_page(overlay_reader2.pages[0])
+        page2.merge_page(overlay_reader_qr.pages[0])
         writer.add_page(page2)
-        os.remove(overlay_path2)
+        os.remove(overlay_path_qr)
 
-    # --- Add remaining pages unchanged ---
+    # ----------- Add remaining pages unchanged -----------
     for i in range(2, len(reader.pages)):
         writer.add_page(reader.pages[i])
 
@@ -137,7 +123,7 @@ def main():
             # Output PDF
             output_pdf = os.path.join(OUTPUT_FOLDER, f"{participant_id}_{name}.pdf")
 
-            overlay_name_flag_and_qr(TEMPLATE_PDF, qr_path, output_pdf, name, country)
+            overlay_qr_and_name(TEMPLATE_PDF, qr_path, output_pdf, name)
             print(f"✅ Generated ID card: {output_pdf}")
 
             os.remove(qr_path)
