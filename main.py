@@ -26,31 +26,40 @@ def generate_qr(data, qr_path):
     img.save(qr_path)
 
 def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf):
-    # Temporary overlay PDF with QR code
-    overlay_path = "overlay.pdf"
-    c = canvas.Canvas(overlay_path, pagesize=A4)
-
-    # Place QR code roughly at center of A4 (adjust x, y if needed)
-    qr_img = ImageReader(qr_path)
-    qr_size = 150  # px
-    page_width, page_height = A4
-    x = (page_width - qr_size) / 2
-    y = (page_height - qr_size) / 2
-    c.drawImage(qr_img, x, y, qr_size, qr_size, mask="auto")
-    c.save()
-
-    # Merge overlay with page 2 of input PDF
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
 
-    for i, page in enumerate(reader.pages):
+    # Get size of second page
+    page = reader.pages[1]   # page 2
+    page_width = float(page.mediabox.width)
+    page_height = float(page.mediabox.height)
+
+    # Create overlay with same size as the page
+    overlay_path = "overlay.pdf"
+    c = canvas.Canvas(overlay_path, pagesize=(page_width, page_height))
+
+    # Load QR code
+    qr_img = ImageReader(qr_path)
+    qr_size = 150  # adjust as needed
+
+    # Calculate centered position
+    x = (page_width - qr_size) / 2
+    y = (page_height - qr_size) / 2
+
+    # Draw QR code
+    c.drawImage(qr_img, x, y, qr_size, qr_size, mask="auto")
+    c.save()
+
+    # Merge overlay onto page 2
+    overlay_reader = PdfReader(overlay_path)
+    for i, p in enumerate(reader.pages):
         if i == 1:  # second page
-            overlay_reader = PdfReader(overlay_path)
-            page.merge_page(overlay_reader.pages[0])
-        writer.add_page(page)
+            p.merge_page(overlay_reader.pages[0])
+        writer.add_page(p)
 
     with open(output_pdf, "wb") as f:
         writer.write(f)
+
 
 def find_pdf_for_name(name, folder):
     # normalize spaces and case
