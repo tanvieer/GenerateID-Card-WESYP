@@ -30,7 +30,7 @@ def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf):
     writer = PdfWriter()
 
     # Get size of second page
-    page = reader.pages[1]   # page 2
+    page = reader.pages[1]
     page_width = float(page.mediabox.width)
     page_height = float(page.mediabox.height)
 
@@ -40,11 +40,14 @@ def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf):
 
     # Load QR code
     qr_img = ImageReader(qr_path)
-    qr_size = 150  # adjust as needed
+    qr_size = 120  # try smaller size to fit inside the box
 
-    # Calculate centered position
+    # Calculate centered X
     x = (page_width - qr_size) / 2
-    y = (page_height - qr_size) / 2
+
+    # Adjust Y position manually (box is lower, not center)
+    # Example: place it ~150 pts from the bottom
+    y = 120
 
     # Draw QR code
     c.drawImage(qr_img, x, y, qr_size, qr_size, mask="auto")
