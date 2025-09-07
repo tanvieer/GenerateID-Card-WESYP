@@ -6,6 +6,7 @@ from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
+from PIL import Image
 
 # Paths
 ID_CARDS_FOLDER = "id_cards"
@@ -22,8 +23,22 @@ def generate_qr(data, qr_path):
     )
     qr.add_data(data)
     qr.make(fit=True)
-    img = qr.make_image(fill="black", back_color="white")
-    img.save(qr_path)
+
+    # Make QR white on black first
+    img = qr.make_image(fill_color="white", back_color="black").convert("RGBA")
+
+    # Make black background transparent
+    datas = img.getdata()
+    newData = []
+    for item in datas:
+        # item is (R, G, B, A)
+        if item[0] < 10 and item[1] < 10 and item[2] < 10:  # detect black
+            newData.append((255, 255, 255, 0))  # transparent
+        else:
+            newData.append(item)
+    img.putdata(newData)
+
+    img.save(qr_path, "PNG")
 
 def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf):
     reader = PdfReader(input_pdf)
