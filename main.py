@@ -18,7 +18,9 @@ pdfmetrics.registerFont(TTFont("Khand-Bold", "fonts/Khand-Bold.ttf"))
 
 
 # Paths
-TEMPLATE_PDF = "id_cards/idcard_template.pdf"
+# TEMPLATE_PDF = "id_cards/participant.pdf"
+# TEMPLATE_PDF = "id_cards/volunteer.pdf"
+TEMPLATE_PDF = "id_cards/speaker.pdf"
 OUTPUT_FOLDER = "output"
 # CSV_FILE = "participants.csv"
 CSV_FILE = "speaker.csv"
@@ -35,7 +37,7 @@ def generate_qr(data, qr_path):
     qr.add_data(data)
     qr.make(fit=True)
 
-    img = qr.make_image(fill_color="white", back_color="black").convert("RGBA")
+    img = qr.make_image(fill_color="#00609d", back_color="black").convert("RGBA")
 
     # Make black background transparent
     datas = img.getdata()
