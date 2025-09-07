@@ -7,6 +7,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from PIL import Image
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 # Paths
 ID_CARDS_FOLDER = "id_cards"
@@ -52,11 +53,33 @@ def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name):
     overlay_path_page1 = "overlay_page1.pdf"
     c1 = canvas.Canvas(overlay_path_page1, pagesize=(page_width, page_height))
 
-    # Set font and size
-    c1.setFont("Helvetica-Bold", 16)
-    x_name = 35  # 30 pts from left
-    y_name = 90  # 30 pts from bottom
-    c1.drawString(x_name, y_name, name)
+    # Font settings
+    font_name = "Helvetica-Bold"
+    font_size = 18
+    c1.setFont(font_name, font_size)
+    x_name = 36
+    y_name = 80
+
+    # Max width for a single line (50% of page width)
+    max_width = page_width * 0.5
+
+    words = name.split()
+    line = ""
+    lines = []
+
+    for word in words:
+        test_line = line + (" " if line else "") + word
+        if stringWidth(test_line, font_name, font_size) <= max_width:
+            line = test_line
+        else:
+            lines.append(line)
+            line = word
+    lines.append(line)
+
+    # Draw each line
+    for i, ln in enumerate(lines):
+        c1.drawString(x_name, y_name - i * (font_size + 2), ln)  # 2 pts line spacing
+
     c1.save()
 
     overlay_reader1 = PdfReader(overlay_path_page1)
@@ -75,7 +98,7 @@ def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name):
         qr_img = ImageReader(qr_path)
         qr_size = 120
         x_qr = (page_width - qr_size) / 2
-        y_qr = 120  # distance from bottom
+        y_qr = 120
 
         c2.drawImage(qr_img, x_qr, y_qr, qr_size, qr_size, mask="auto")
         c2.save()
@@ -84,14 +107,14 @@ def overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name):
         page2.merge_page(overlay_reader2.pages[0])
         writer.add_page(page2)
 
-    # ----------- Add remaining pages if any -----------
+    # Add remaining pages if any
     for i in range(2, len(reader.pages)):
         writer.add_page(reader.pages[i])
 
     with open(output_pdf, "wb") as f:
         writer.write(f)
 
-    # Cleanup temporary overlays
+    # Cleanup
     os.remove("overlay_page1.pdf")
     if os.path.exists("overlay_page2.pdf"):
         os.remove("overlay_page2.pdf")
@@ -169,7 +192,7 @@ def main():
             generate_qr(json_data, qr_path)
 
             # Attach QR to PDF
-            overlay_qr_on_pdf(input_pdf, qr_path, output_pdf)
+            overlay_qr_on_pdf(input_pdf, qr_path, output_pdf, name)
             print(f"Generated ID card: {output_pdf}")
 
             # Clean up QR file
