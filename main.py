@@ -8,6 +8,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from PIL import Image
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+
+# Register Khand font (only once, globally)
+pdfmetrics.registerFont(TTFont("Khand", "fonts/Khand-Regular.ttf"))
+pdfmetrics.registerFont(TTFont("Khand-Bold", "fonts/Khand-Bold.ttf"))
+
 
 # Paths
 TEMPLATE_PDF = "id_cards/idcard_template.pdf"
@@ -41,6 +49,7 @@ def generate_qr(data, qr_path):
 
     img.save(qr_path, "PNG")
 
+
 def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
@@ -48,12 +57,12 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
     page_width = float(reader.pages[0].mediabox.width)
     page_height = float(reader.pages[0].mediabox.height)
 
-    # --- Overlay first page: name + flag ---
+    # --- Overlay first page: name + flag + country text ---
     overlay_path1 = "overlay_page1.pdf"
     c1 = canvas.Canvas(overlay_path1, pagesize=(page_width, page_height))
 
-    # Draw name (same as before)
-    font_name = "Helvetica-Bold"
+    # Draw name (using Khand-Bold)
+    font_name = "Khand-Bold"
     font_size = 17
     c1.setFont(font_name, font_size)
     x_name = 36
@@ -73,15 +82,22 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
     for i, ln in enumerate(lines):
         c1.drawString(x_name, y_name - i * (font_size + 2), ln)
 
-    # Draw flag
+    # Draw flag at bottom-right
     flag_path = f"flags/{country}.png"
     if os.path.exists(flag_path):
         flag_img = ImageReader(flag_path)
         flag_width = 50
         flag_height = 30
         x_flag = page_width - flag_width - 20
-        y_flag = page_height - flag_height - 20
+        y_flag = 40  # Bottom margin
         c1.drawImage(flag_img, x_flag, y_flag, flag_width, flag_height, mask="auto")
+
+        # Draw country text below flag
+        c1.setFont("Khand", 12)
+        text_width = stringWidth(country, "Khand", 12)
+        x_text = x_flag + (flag_width - text_width) / 2
+        y_text = y_flag - 15
+        c1.drawString(x_text, y_text, country)
     else:
         print(f"⚠️ Flag not found for {country}: {flag_path}")
 
