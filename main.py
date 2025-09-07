@@ -62,7 +62,7 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
     c1 = canvas.Canvas(overlay_path1, pagesize=(page_width, page_height))
 
     # Draw name (using Khand-Bold)
-    font_name = "Khand-Bold"
+    font_name = "Khand"
     font_size = 17
     c1.setFont(font_name, font_size)
     x_name = 36
@@ -93,10 +93,10 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
         c1.drawImage(flag_img, x_flag, y_flag, flag_width, flag_height, mask="auto")
 
         # Draw country text below flag
-        c1.setFont("Khand", 12)
-        text_width = stringWidth(country, "Khand", 12)
+        c1.setFont("Khand", 10)
+        text_width = stringWidth(country, "Khand", 10)
         x_text = x_flag + (flag_width - text_width) / 2
-        y_text = y_flag - 15
+        y_text = y_flag - 7
         c1.drawString(x_text, y_text, country)
     else:
         print(f"⚠️ Flag not found for {country}: {flag_path}")
