@@ -20,8 +20,8 @@ pdfmetrics.registerFont(TTFont("Khand-Bold", "fonts/Khand-Bold.ttf"))
 # Paths
 TEMPLATE_PDF = "id_cards/idcard_template.pdf"
 OUTPUT_FOLDER = "output"
-CSV_FILE = "participants.csv"
-# CSV_FILE = "speaker.csv"
+# CSV_FILE = "participants.csv"
+CSV_FILE = "speaker.csv"
 # CSV_FILE = "volunteers.csv"
 
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -68,6 +68,8 @@ def overlay_name_flag_and_qr(input_pdf, qr_path, output_pdf, name, country):
     x_name = 36
     y_name = 85
     max_width = page_width * 0.5
+
+    # Wrap participant name
     words = name.split()
     line = ""
     lines = []
